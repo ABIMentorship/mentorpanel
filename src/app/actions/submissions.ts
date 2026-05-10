@@ -15,6 +15,17 @@ export async function submitLog(data: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
+  // Fetch user role
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (profile?.role === 'Junior Mentor' && data.category === 'Mentoring Session') {
+    return { error: 'Junior Mentors are not authorized to submit Mentoring Sessions.' };
+  }
+
   const { error } = await supabase
     .from('submissions')
     .insert({

@@ -190,3 +190,33 @@ export async function changeRole(profileId: string, newRole: string) {
   revalidatePath('/');
   return { success: true };
 }
+
+export async function updateStrikes(profileId: string, strikes: string) {
+  const supabase = await createClient();
+  
+  // Verify Admin rights
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: currentAdmin } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  if (!currentAdmin || currentAdmin.role !== 'Lead') {
+    return { error: "Unauthorized. Lead role required." };
+  }
+
+  // Cap strikes at 2
+  const strikeNum = parseInt(strikes) || 0;
+  const finalStrikes = Math.min(Math.max(0, strikeNum), 2).toString();
+
+  const { error } = await supabase
+    .from('mentor_metrics')
+    .update({ strikes: finalStrikes })
+    .eq('profile_id', profileId);
+
+  if (error) {
+    console.error("Failed to update strikes:", error);
+    return { error: "Failed to update strikes." };
+  }
+
+  revalidatePath('/');
+  return { success: true };
+}

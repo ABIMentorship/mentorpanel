@@ -36,8 +36,10 @@ export function Navbar({ activeView, setActiveView, currentUser }: NavbarProps) 
               <Button
                 key={item.id}
                 variant={activeView === item.id ? "default" : "ghost"}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  activeView === item.id ? "bg-primary text-black" : "text-muted-foreground"
+                className={`text-sm font-bold uppercase tracking-wider transition-all ${
+                  activeView === item.id 
+                    ? "bg-primary text-black hover:bg-primary/90" 
+                    : "text-muted-foreground hover:text-primary hover:bg-primary/10"
                 }`}
                 onClick={() => setActiveView(item.id)}
               >

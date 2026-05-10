@@ -184,7 +184,9 @@ export function MentorPanel({ currentUser }: MentorPanelProps) {
                   <SelectValue placeholder="Select activity type..." />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border">
-                  <SelectItem value="Mentoring Session">Mentoring Session</SelectItem>
+                  {currentUser.role !== 'Junior Mentor' && (
+                    <SelectItem value="Mentoring Session">Mentoring Session</SelectItem>
+                  )}
                   <SelectItem value="Guide Creation">Guide Creation</SelectItem>
                   {isAdmin && (
                     <SelectItem value="Evaluation">Evaluation</SelectItem>

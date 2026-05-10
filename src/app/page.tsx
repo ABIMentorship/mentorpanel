@@ -56,7 +56,6 @@ export default async function Home() {
         quota
       )
     `)
-    .in("role", ["Junior Mentor", "Mentor", "Senior Mentor"])
     .order("total_points", { ascending: false });
 
   // Map the nested mentor_metrics properly, just in case it returns an array due to Supabase typing quirks

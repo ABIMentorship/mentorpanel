@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Check, X, RefreshCcw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { approveSubmission, rejectSubmission, adjustPoints, changeRole, resetMonthlyData } from "@/app/actions/admin";
+import { approveSubmission, rejectSubmission, adjustPoints, changeRole, resetMonthlyData, updateStrikes } from "@/app/actions/admin";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -97,6 +97,8 @@ export function AdminPanel({
       setIsProcessing(null);
     }
   };
+
+
 
   const handleReset = async () => {
     if (!confirm("CRITICAL ACTION: This will reset ALL mentor points and session counts for the new month. This cannot be undone. Are you sure?")) {
@@ -255,8 +257,8 @@ export function AdminPanel({
                 <div className="flex items-center gap-2">
                   <Label className="text-xs text-muted-foreground">Role:</Label>
                   <Select value={mentor.role} onValueChange={(val) => handleRoleChange(mentor.id, val || "")}>
-                    <SelectTrigger className="w-[140px] h-9 text-xs bg-background/50 border-border focus:ring-primary">
-                      <SelectValue placeholder="Select role" />
+                    <SelectTrigger className="w-[160px] h-9 text-xs bg-background/50 border-border focus:ring-primary">
+                      <SelectValue placeholder="Role" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover border-border">
                       <SelectItem value="Junior Mentor">Junior Mentor</SelectItem>
@@ -264,6 +266,7 @@ export function AdminPanel({
                       <SelectItem value="Senior Mentor">Senior Mentor</SelectItem>
                       <SelectItem value="Instructor">Instructor</SelectItem>
                       <SelectItem value="Senior Instructor">Senior Instructor</SelectItem>
+                      <SelectItem value="Lead">Lead</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
