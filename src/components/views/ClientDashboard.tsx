@@ -6,6 +6,7 @@ import { PublicRoster } from "@/components/views/PublicRoster";
 import { MentorPanel } from "@/components/views/MentorPanel";
 import { AdminPanel } from "@/components/views/AdminPanel";
 import { MentorshipHistory } from "@/components/views/MentorshipHistory";
+import { Leaderboard } from "@/components/views/Leaderboard";
 
 export type ProfileWithMetrics = {
   id: string;
@@ -64,6 +65,9 @@ export function ClientDashboard({
         )}
         {activeView === "history" && (
           <MentorshipHistory approvedMentorships={approvedMentorships} />
+        )}
+        {activeView === "leaderboard" && (
+          <Leaderboard members={rosterData} />
         )}
       </main>
 

@@ -16,6 +16,7 @@ export function Navbar({ activeView, setActiveView, currentUser }: NavbarProps) 
   
   const navItems = [
     { id: "roster", label: "Public Roster" },
+    { id: "leaderboard", label: "Leaderboard" },
     { id: "mentor", label: "Mentor Panel" },
     ...(isAdmin ? [{ id: "admin", label: "Admin Panel" }] : []),
     ...(currentUser.role === "Lead" ? [{ id: "history", label: "History" }] : []),
