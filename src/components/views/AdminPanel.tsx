@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, X, RefreshCcw, AlertTriangle } from "lucide-react";
+import { Check, X, RefreshCcw, AlertTriangle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { approveSubmission, rejectSubmission, adjustPoints, changeRole, resetMonthlyData, updateStrikes } from "@/app/actions/admin";
+import { approveSubmission, rejectSubmission, adjustPoints, changeRole, resetMonthlyData, updateStrikes, deleteUser } from "@/app/actions/admin";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -98,6 +98,23 @@ export function AdminPanel({
     }
   };
 
+  const handleDeleteUser = async (profileId: string, name: string) => {
+    if (!confirm(`CRITICAL: Are you sure you want to delete ${name}? This will wipe all their data from the database. This cannot be undone.`)) {
+      return;
+    }
+
+    setIsProcessing(`delete-${profileId}`);
+    try {
+      const res = await deleteUser(profileId);
+      if (res.error) throw new Error(res.error);
+      toast.success("User deleted successfully.");
+      router.refresh();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete user");
+    } finally {
+      setIsProcessing(null);
+    }
+  };
 
 
   const handleReset = async () => {
@@ -290,6 +307,17 @@ export function AdminPanel({
                     Apply
                   </Button>
                 </div>
+                
+                <Button
+                  onClick={() => handleDeleteUser(mentor.id, mentor.in_game_name)}
+                  disabled={isProcessing === `delete-${mentor.id}`}
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-all ml-2"
+                  title="Delete User"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           ))}

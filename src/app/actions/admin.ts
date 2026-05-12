@@ -242,3 +242,36 @@ export async function updateStrikes(profileId: string, strikes: string) {
   revalidatePath('/');
   return { success: true };
 }
+
+export async function deleteUser(profileId: string) {
+  const supabase = await createClient();
+  
+  // Verify Admin rights
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: currentAdmin } = await supabase.from('profiles').select('role, is_developer').eq('id', user.id).single();
+  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor'].includes(currentAdmin?.role || '');
+  if (!isSuperAdmin) {
+    return { error: "Unauthorized. Lead/Advisor access required." };
+  }
+
+  try {
+    // 1. Delete metrics
+    await supabase.from('mentor_metrics').delete().eq('profile_id', profileId);
+    
+    // 2. Delete submissions
+    await supabase.from('submissions').delete().eq('profile_id', profileId);
+    
+    // 3. Delete profile
+    const { error } = await supabase.from('profiles').delete().eq('id', profileId);
+    
+    if (error) throw error;
+
+    revalidatePath('/');
+    return { success: true };
+  } catch (err: any) {
+    console.error("Failed to delete user:", err);
+    return { error: `Failed to delete user: ${err.message}` };
+  }
+}
