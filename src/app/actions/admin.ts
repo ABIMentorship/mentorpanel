@@ -10,8 +10,9 @@ export async function approveSubmission(submissionId: string, profileId: string,
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { data: currentAdmin } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  if (!currentAdmin || currentAdmin.role !== 'Lead') {
+  const { data: currentAdmin } = await supabase.from('profiles').select('role, is_developer').eq('id', user.id).single();
+  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor'].includes(currentAdmin?.role || '');
+  if (!isSuperAdmin) {
     return { error: "Unauthorized. Lead role required." };
   }
 
@@ -67,13 +68,7 @@ export async function approveSubmission(submissionId: string, profileId: string,
     await supabase.from('submissions').update({ awarded_points: pointsToAward }).eq('id', submissionId);
   }
 
-  // 3. Cleanup Storage
-  if (submission?.request_screenshot_path) {
-    await supabase.storage.from('screenshots').remove([submission.request_screenshot_path]);
-  }
-  if (submission?.match_screenshot_path) {
-    await supabase.storage.from('screenshots').remove([submission.match_screenshot_path]);
-  }
+  // Cleanup Storage moved to resetMonthlyData for history support
 
   revalidatePath('/');
   return { success: true, awardedPoints: pointsToAward };
@@ -86,8 +81,9 @@ export async function resetMonthlyData() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { data: currentAdmin } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  if (!currentAdmin || currentAdmin.role !== 'Lead') {
+  const { data: currentAdmin } = await supabase.from('profiles').select('role, is_developer').eq('id', user.id).single();
+  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor'].includes(currentAdmin?.role || '');
+  if (!isSuperAdmin) {
     return { error: "Unauthorized. Lead role required." };
   }
 
@@ -98,9 +94,37 @@ export async function resetMonthlyData() {
       total_points: 0, 
       session_count: 0 
     })
-    .not('id', 'is', null); // Update all rows correctly
+    .not('id', 'is', null);
 
   if (profileError) return { error: "Failed to reset profiles: " + profileError.message };
+
+  // 2. Cleanup Storage (Delete all screenshots to free up space)
+  const { data: files } = await supabase.storage.from('screenshots').list('', { limit: 1000 });
+  if (files && files.length > 0) {
+    // List folders (user IDs)
+    for (const item of files) {
+      if (!item.id) { // It's a folder
+        const { data: subFiles } = await supabase.storage.from('screenshots').list(item.name);
+        if (subFiles && subFiles.length > 0) {
+          const filesToRemove = subFiles.map(sf => `${item.name}/${sf.name}`);
+          await supabase.storage.from('screenshots').remove(filesToRemove);
+        }
+      } else { // It's a file in root
+        await supabase.storage.from('screenshots').remove([item.name]);
+      }
+    }
+  }
+
+  // 3. Update submissions to mark images as deleted (Clear BOTH urls and paths)
+  await supabase
+    .from('submissions')
+    .update({ 
+      request_screenshot_url: null, 
+      match_screenshot_url: null,
+      request_screenshot_path: null,
+      match_screenshot_path: null
+    })
+    .not('id', 'is', null);
 
   revalidatePath('/');
   return { success: true };
@@ -113,8 +137,9 @@ export async function rejectSubmission(submissionId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { data: currentAdmin } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  if (!currentAdmin || currentAdmin.role !== 'Lead') {
+  const { data: currentAdmin } = await supabase.from('profiles').select('role, is_developer').eq('id', user.id).single();
+  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor'].includes(currentAdmin?.role || '');
+  if (!isSuperAdmin) {
     return { error: "Unauthorized. Lead role required." };
   }
 
@@ -128,13 +153,7 @@ export async function rejectSubmission(submissionId: string) {
 
   if (updateError) return { error: "Failed to reject submission." };
 
-  // Cleanup Storage even if rejected
-  if (submission?.request_screenshot_path) {
-    await supabase.storage.from('screenshots').remove([submission.request_screenshot_path]);
-  }
-  if (submission?.match_screenshot_path) {
-    await supabase.storage.from('screenshots').remove([submission.match_screenshot_path]);
-  }
+  // Cleanup Storage moved to resetMonthlyData for history support
 
   revalidatePath('/');
   return { success: true };
@@ -147,8 +166,9 @@ export async function adjustPoints(profileId: string, adjustment: number) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { data: currentAdmin } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  if (!currentAdmin || currentAdmin.role !== 'Lead') {
+  const { data: currentAdmin } = await supabase.from('profiles').select('role, is_developer').eq('id', user.id).single();
+  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor'].includes(currentAdmin?.role || '');
+  if (!isSuperAdmin) {
     return { error: "Unauthorized. Lead role required." };
   }
 
@@ -175,8 +195,9 @@ export async function changeRole(profileId: string, newRole: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { data: currentAdmin } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  if (!currentAdmin || currentAdmin.role !== 'Lead') {
+  const { data: currentAdmin } = await supabase.from('profiles').select('role, is_developer').eq('id', user.id).single();
+  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor'].includes(currentAdmin?.role || '');
+  if (!isSuperAdmin) {
     return { error: "Unauthorized. Lead role required." };
   }
 
@@ -184,7 +205,7 @@ export async function changeRole(profileId: string, newRole: string) {
 
   if (error) {
     console.error("Failed to change role:", error);
-    return { error: "Failed to update role." };
+    return { error: `Failed to update role: ${error.message}` };
   }
 
   revalidatePath('/');
@@ -198,8 +219,9 @@ export async function updateStrikes(profileId: string, strikes: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { data: currentAdmin } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  if (!currentAdmin || currentAdmin.role !== 'Lead') {
+  const { data: currentAdmin } = await supabase.from('profiles').select('role, is_developer').eq('id', user.id).single();
+  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor'].includes(currentAdmin?.role || '');
+  if (!isSuperAdmin) {
     return { error: "Unauthorized. Lead role required." };
   }
 

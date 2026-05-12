@@ -16,11 +16,12 @@ export async function updateMentorPoints(
 
   const { data: currentUser } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, is_developer')
     .eq('id', user.id)
     .single();
 
-  if (!currentUser || !['Instructor', 'Senior Instructor', 'Lead'].includes(currentUser.role)) {
+  const isAdmin = currentUser?.is_developer || ['Instructor', 'Senior Instructor', 'Lead Instructor', 'Lead', 'Advisor'].includes(currentUser?.role || '');
+  if (!isAdmin) {
     return { error: 'Unauthorized. Only Instructors and Leads can edit points.' };
   }
 

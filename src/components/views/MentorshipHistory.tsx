@@ -6,7 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Search, Calendar, FileText } from "lucide-react";
+import { Download, Search, Calendar, FileText, Image as ImageIcon, ExternalLink } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface MentorshipHistoryProps {
   approvedMentorships: any[];
@@ -14,6 +21,15 @@ interface MentorshipHistoryProps {
 
 export function MentorshipHistory({ approvedMentorships }: MentorshipHistoryProps) {
   const [filter, setFilter] = useState("all");
+  const [isExporting, setIsExporting] = useState(false);
+  
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  const getImageUrl = (url: string | null, path: string | null) => {
+    if (url) return url;
+    if (path) return `${supabaseUrl}/storage/v1/object/public/screenshots/${path}`;
+    return null;
+  };
 
   const filterData = (data: any[]) => {
     const now = new Date();
@@ -39,20 +55,106 @@ export function MentorshipHistory({ approvedMentorships }: MentorshipHistoryProp
 
   const filteredData = filterData(approvedMentorships);
 
-  const downloadTxt = () => {
-    const content = filteredData
-      .map(sub => `${sub.mentee_ign} - ${sub.mentee_uid}`)
-      .join("\n");
-    
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `mentorship_history_${filter}_${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  const exportZip = async () => {
+    setIsExporting(true);
+    try {
+      // Dynamic imports for Edge compatibility
+      const JSZip = (await import("jszip")).default;
+      const ExcelJS = await import("exceljs");
+      
+      const zip = new JSZip();
+      const screenshotFolder = zip.folder("screenshots");
+      
+      // Create Excel Workbook
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Mentorship History");
+      
+      worksheet.columns = [
+        { header: "Nick", key: "nick", width: 20 },
+        { header: "UID", key: "uid", width: 15 },
+        { header: "Mentor", key: "mentor", width: 20 },
+        { header: "Category", key: "category", width: 20 },
+        { header: "Date", key: "date", width: 15 },
+        { header: "Request Screenshot", key: "request_url", width: 30 },
+        { header: "Match Screenshot", key: "match_url", width: 30 }
+      ];
+
+      for (const sub of filteredData) {
+        const dateStr = new Date(sub.created_at).toLocaleDateString();
+        const safeNick = (sub.mentee_ign || "unknown").replace(/[^a-z0-9]/gi, '_');
+        
+        const requestUrl = getImageUrl(sub.request_screenshot_url, sub.request_screenshot_path);
+        const matchUrl = getImageUrl(sub.match_screenshot_url, sub.match_screenshot_path);
+
+        // Download images if they exist
+        const images = [
+          { url: requestUrl, type: 'request' },
+          { url: matchUrl, type: 'match' }
+        ];
+
+        for (const img of images) {
+          if (img.url) {
+            try {
+              const fileName = `${sub.id}_${safeNick}_${img.type}.png`;
+              const response = await fetch(img.url);
+              if (response.ok) {
+                const blob = await response.blob();
+                screenshotFolder?.file(fileName, blob);
+              }
+            } catch (e) {
+              console.error("Failed to download image:", img.url);
+            }
+          }
+        }
+
+        // Add Row to Excel
+        const row = worksheet.addRow({
+          nick: sub.mentee_ign,
+          uid: sub.mentee_uid,
+          mentor: sub.profiles?.in_game_name || "Unknown",
+          category: sub.category,
+          date: dateStr,
+        });
+
+        // Hyperlinks for local files (relative path in ZIP)
+        if (requestUrl) {
+          const requestFileName = `${sub.id}_${safeNick}_request.png`;
+          row.getCell('request_url').value = {
+            text: "Open Request Proof",
+            hyperlink: `./screenshots/${requestFileName}`,
+            tooltip: "Open local screenshot"
+          } as any;
+          row.getCell('request_url').font = { color: { argb: '0000FF' }, underline: true };
+        }
+
+        if (matchUrl) {
+          const matchFileName = `${sub.id}_${safeNick}_match.png`;
+          row.getCell('match_url').value = {
+            text: "Open Match History",
+            hyperlink: `./screenshots/${matchFileName}`,
+            tooltip: "Open local screenshot"
+          } as any;
+          row.getCell('match_url').font = { color: { argb: '0000FF' }, underline: true };
+        }
+      }
+
+      const excelBuffer = await workbook.xlsx.writeBuffer();
+      zip.file("mentorship_history.xlsx", excelBuffer);
+
+      const zipContent = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(zipContent);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `mentorship_export_${filter}_${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export error:", error);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -79,9 +181,13 @@ export function MentorshipHistory({ approvedMentorships }: MentorshipHistoryProp
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={downloadTxt} className="bg-primary text-black hover:bg-primary/90 font-bold uppercase text-xs tracking-wider">
-            <FileText className="mr-2 h-4 w-4" />
-            Export TXT
+          <Button onClick={exportZip} disabled={isExporting} className="bg-primary text-black hover:bg-primary/90 font-bold uppercase text-xs tracking-wider">
+            {isExporting ? <span className="animate-pulse">Exporting...</span> : (
+              <>
+                <Download className="mr-2 h-4 w-4" />
+                Export ZIP
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -94,38 +200,93 @@ export function MentorshipHistory({ approvedMentorships }: MentorshipHistoryProp
               <TableHead className="text-muted-foreground uppercase text-xs font-bold">Mentee UID</TableHead>
               <TableHead className="text-muted-foreground uppercase text-xs font-bold">Mentor</TableHead>
               <TableHead className="text-muted-foreground uppercase text-xs font-bold">Category</TableHead>
+              <TableHead className="text-center text-muted-foreground uppercase text-xs font-bold">Proof</TableHead>
               <TableHead className="text-right text-muted-foreground uppercase text-xs font-bold">Date</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-12 text-muted-foreground italic">
+                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground italic">
                   No records found for the selected period.
                 </TableCell>
               </TableRow>
             ) : (
-              filteredData.map((sub) => (
-                <TableRow key={sub.id} className="border-border/50 hover:bg-muted/30 transition-colors group">
-                  <TableCell className="font-bold text-foreground group-hover:text-primary transition-colors">
-                    {sub.mentee_ign}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground/80 tracking-tighter">
-                    {sub.mentee_uid}
-                  </TableCell>
-                  <TableCell className="text-primary/90 font-medium tracking-tight">
-                    {sub.profiles?.in_game_name || "Unknown"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 uppercase border-primary/20 text-primary bg-primary/5 font-bold">
-                      {sub.category}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right text-xs text-muted-foreground font-mono">
-                    {new Date(sub.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                  </TableCell>
-                </TableRow>
-              ))
+              filteredData.map((sub) => {
+                const requestUrl = getImageUrl(sub.request_screenshot_url, sub.request_screenshot_path);
+                const matchUrl = getImageUrl(sub.match_screenshot_url, sub.match_screenshot_path);
+                
+                return (
+                  <TableRow key={sub.id} className="border-border/50 hover:bg-muted/30 transition-colors group">
+                    <TableCell className="font-bold text-foreground group-hover:text-primary transition-colors">
+                      {sub.mentee_ign}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground/80 tracking-tighter">
+                      {sub.mentee_uid}
+                    </TableCell>
+                    <TableCell className="text-primary/90 font-medium tracking-tight">
+                      {sub.profiles?.in_game_name || "Unknown"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 uppercase border-primary/20 text-primary bg-primary/5 font-bold">
+                        {sub.category}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {(requestUrl || matchUrl) ? (
+                        <Dialog>
+                          <DialogTrigger className="h-8 w-8 inline-flex items-center justify-center rounded-md text-primary hover:bg-primary/10 transition-colors">
+                            <ImageIcon className="h-4 w-4" />
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl bg-card/95 backdrop-blur border-primary/20">
+                            <DialogHeader>
+                              <DialogTitle className="uppercase tracking-tighter flex items-center justify-between">
+                                <span>Activity Proof • {sub.mentee_ign}</span>
+                                <Badge variant="outline" className="text-[10px]">{sub.category}</Badge>
+                              </DialogTitle>
+                            </DialogHeader>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                              <div className="space-y-2">
+                                <p className="text-[10px] uppercase font-black text-muted-foreground flex items-center gap-1">
+                                  <ExternalLink className="h-3 w-3" /> Request Proof
+                                </p>
+                                {requestUrl ? (
+                                  <a href={requestUrl} target="_blank" rel="noopener noreferrer" className="block rounded-lg border border-border overflow-hidden hover:border-primary/50 transition-colors bg-black/40">
+                                    <img src={requestUrl} alt="Request" className="w-full h-auto object-contain max-h-[500px]" />
+                                  </a>
+                                ) : (
+                                  <div className="h-40 flex items-center justify-center border border-dashed border-border rounded-lg bg-muted/20 text-muted-foreground text-xs italic">
+                                    Görsel silinmiş (Resetlendi)
+                                  </div>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <p className="text-[10px] uppercase font-black text-muted-foreground flex items-center gap-1">
+                                  <ExternalLink className="h-3 w-3" /> Match History Proof
+                                </p>
+                                {matchUrl ? (
+                                  <a href={matchUrl} target="_blank" rel="noopener noreferrer" className="block rounded-lg border border-border overflow-hidden hover:border-primary/50 transition-colors bg-black/40">
+                                    <img src={matchUrl} alt="Match" className="w-full h-auto object-contain max-h-[500px]" />
+                                  </a>
+                                ) : (
+                                  <div className="h-40 flex items-center justify-center border border-dashed border-border rounded-lg bg-muted/20 text-muted-foreground text-xs italic">
+                                    Görsel silinmiş (Resetlendi)
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] text-muted-foreground/30 border-muted-foreground/20 italic uppercase">Expired</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground font-mono">
+                      {new Date(sub.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

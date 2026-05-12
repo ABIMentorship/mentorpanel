@@ -120,7 +120,8 @@ export function AdminPanel({
     }
   };
 
-  if (currentUser.role !== "Lead") {
+  const isSuperAdmin = currentUser.is_developer || ["Lead", "Advisor"].includes(currentUser.role);
+  if (!isSuperAdmin) {
     return (
       <div className="flex justify-center items-center h-64 text-muted-foreground">
         You do not have permission to view the Admin Panel. Lead access required.
@@ -266,7 +267,9 @@ export function AdminPanel({
                       <SelectItem value="Senior Mentor">Senior Mentor</SelectItem>
                       <SelectItem value="Instructor">Instructor</SelectItem>
                       <SelectItem value="Senior Instructor">Senior Instructor</SelectItem>
+                      <SelectItem value="Lead Instructor">Lead Instructor</SelectItem>
                       <SelectItem value="Lead">Lead</SelectItem>
+                      <SelectItem value="Advisor">Advisor</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

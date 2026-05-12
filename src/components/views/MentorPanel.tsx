@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { UploadCloud } from "lucide-react";
+import imageCompression from 'browser-image-compression';
 
 import { ProfileWithMetrics } from "./ClientDashboard";
 import { createClient } from "@/utils/supabase/client";
@@ -31,7 +32,7 @@ export function MentorPanel({ currentUser }: MentorPanelProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const supabase = createClient();
   
-  const isAdmin = ["Instructor", "Senior Instructor", "Lead"].includes(currentUser.role);
+  const isAdmin = currentUser.is_developer || ["Instructor", "Senior Instructor", "Lead Instructor", "Lead", "Advisor"].includes(currentUser.role);
 
   // Dynamic Progress Logic
   const currentPoints = currentUser.total_points || 0;
@@ -49,11 +50,25 @@ export function MentorPanel({ currentUser }: MentorPanelProps) {
   const pointsNeeded = isMaxed ? 0 : nextTier.points - currentPoints;
   const progressPercentage = isMaxed ? 100 : (currentPoints / nextTier.points) * 100;
 
+  const compressImage = async (file: File) => {
+    const options = {
+      maxSizeMB: 0.4, // Max 400KB
+      maxWidthOrHeight: 1920,
+      useWebWorker: true,
+    };
+    try {
+      return await imageCompression(file, options);
+    } catch (error) {
+      console.error("Compression error:", error);
+      return file; // Fallback to original
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'request' | 'match') => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("File size must be less than 5MB", { className: "bg-destructive text-destructive-foreground border-destructive" });
+      if (file.size > 10 * 1024 * 1024) { // Allow up to 10MB original, we will compress it
+        toast.error("File size must be less than 10MB before compression", { className: "bg-destructive text-destructive-foreground border-destructive" });
         return;
       }
       if (type === 'request') setRequestFile(file);
@@ -95,22 +110,28 @@ export function MentorPanel({ currentUser }: MentorPanelProps) {
     setIsSubmitting(true);
     let requestScreenshotPath = "";
     let matchScreenshotPath = "";
+    let requestScreenshotUrl = "";
+    let matchScreenshotUrl = "";
 
     try {
       if (requestFile) {
+        const compressed = await compressImage(requestFile);
         const ext = requestFile.name.split('.').pop();
         const fileName = `${currentUser.id}/request-${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from('screenshots').upload(fileName, requestFile);
+        const { error: uploadError } = await supabase.storage.from('screenshots').upload(fileName, compressed);
         if (uploadError) throw uploadError;
         requestScreenshotPath = fileName;
+        requestScreenshotUrl = supabase.storage.from('screenshots').getPublicUrl(fileName).data.publicUrl;
       }
 
       if (matchFile) {
+        const compressed = await compressImage(matchFile);
         const ext = matchFile.name.split('.').pop();
         const fileName = `${currentUser.id}/match-${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from('screenshots').upload(fileName, matchFile);
+        const { error: uploadError } = await supabase.storage.from('screenshots').upload(fileName, compressed);
         if (uploadError) throw uploadError;
         matchScreenshotPath = fileName;
+        matchScreenshotUrl = supabase.storage.from('screenshots').getPublicUrl(fileName).data.publicUrl;
       }
 
       const res = await submitLog({
@@ -120,6 +141,8 @@ export function MentorPanel({ currentUser }: MentorPanelProps) {
         guideLink,
         requestScreenshotPath,
         matchScreenshotPath,
+        requestScreenshotUrl,
+        matchScreenshotUrl,
       });
 
       if (res.error) {
@@ -134,7 +157,6 @@ export function MentorPanel({ currentUser }: MentorPanelProps) {
         setGuideLink("");
         setRequestFile(null);
         setMatchFile(null);
-        // Add router.refresh to ensure data is synced
         router.refresh();
       }
     } catch (error: any) {

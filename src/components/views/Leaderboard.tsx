@@ -28,12 +28,14 @@ export function Leaderboard({ members }: LeaderboardProps) {
 
   const getRoleBadge = (role: string) => {
     switch (role) {
+      case "Advisor":
       case "Lead":
-        return <Badge className="bg-red-500/20 text-red-500 border-red-500/30 uppercase text-[10px]">Lead</Badge>;
+        return <Badge className="bg-red-500/20 text-red-500 border-red-500/30 uppercase text-[10px]">{role}</Badge>;
       case "Senior Instructor":
         return <Badge className="bg-primary/20 text-primary border-primary/30 uppercase text-[10px]">Sr. Instructor</Badge>;
+      case "Lead Instructor":
       case "Instructor":
-        return <Badge className="bg-primary/20 text-primary border-primary/30 uppercase text-[10px]">Instructor</Badge>;
+        return <Badge className="bg-primary/20 text-primary border-primary/30 uppercase text-[10px]">{role === "Lead Instructor" ? "Lead Instructor" : "Instructor"}</Badge>;
       case "Senior Mentor":
         return <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30 uppercase text-[10px]">Senior Mentor</Badge>;
       case "Mentor":

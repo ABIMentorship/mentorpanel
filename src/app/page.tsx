@@ -17,7 +17,7 @@ export default async function Home() {
   const { data: currentProfile } = await supabase
     .from("profiles")
     .select(`
-      id, discord_id, in_game_name, uid, role, total_points, timezone,
+      id, discord_id, in_game_name, uid, role, is_developer, total_points, timezone,
       mentor_metrics (
         participation_points,
         mentoring_points,
@@ -42,7 +42,7 @@ export default async function Home() {
   const { data: rosterData } = await supabase
     .from("profiles")
     .select(`
-      id, discord_id, in_game_name, uid, role, total_points, timezone,
+      id, discord_id, in_game_name, uid, role, is_developer, total_points, timezone,
       mentor_metrics (
         participation_points,
         mentoring_points,
@@ -72,7 +72,9 @@ export default async function Home() {
   let pendingSubmissions: any[] = [];
   let approvedMentorships: any[] = [];
   
-  if (mappedCurrentProfile.role === "Lead") {
+  const isSuperAdmin = mappedCurrentProfile.is_developer || ["Lead", "Advisor"].includes(mappedCurrentProfile.role);
+  
+  if (isSuperAdmin) {
     const { data: pending } = await supabase
       .from("submissions")
       .select(`
@@ -87,11 +89,14 @@ export default async function Home() {
     const { data: approved } = await supabase
       .from("submissions")
       .select(`
-        id, mentee_ign, mentee_uid, category, created_at,
+        id, mentee_ign, mentee_uid, category, created_at, 
+        request_screenshot_url, match_screenshot_url,
+        request_screenshot_path, match_screenshot_path,
         profiles ( in_game_name )
       `)
       .eq("status", "Approved")
       .not("mentee_ign", "is", null)
+      .neq("category", "Evaluation")
       .order("created_at", { ascending: false });
     
     approvedMentorships = approved || [];

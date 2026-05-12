@@ -15,6 +15,7 @@ export type ProfileWithMetrics = {
   uid: string;
   timezone?: string;
   role: string;
+  is_developer?: boolean;
   total_points: number;
   mentor_metrics: {
     participation_points: number;

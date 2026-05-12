@@ -12,14 +12,15 @@ interface NavbarProps {
 }
 
 export function Navbar({ activeView, setActiveView, currentUser }: NavbarProps) {
-  const isAdmin = ["Instructor", "Senior Instructor", "Lead"].includes(currentUser.role);
+  const isAdmin = currentUser.is_developer || ["Instructor", "Senior Instructor", "Lead Instructor", "Lead", "Advisor"].includes(currentUser.role);
+  const isSuperAdmin = currentUser.is_developer || ["Lead", "Advisor"].includes(currentUser.role);
   
   const navItems = [
     { id: "roster", label: "Public Roster" },
     { id: "leaderboard", label: "Leaderboard" },
     { id: "mentor", label: "Mentor Panel" },
     ...(isAdmin ? [{ id: "admin", label: "Admin Panel" }] : []),
-    ...(currentUser.role === "Lead" ? [{ id: "history", label: "History" }] : []),
+    ...(isSuperAdmin ? [{ id: "history", label: "History" }] : []),
   ];
 
   return (

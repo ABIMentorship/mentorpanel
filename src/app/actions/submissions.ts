@@ -10,6 +10,8 @@ export async function submitLog(data: {
   guideLink?: string;
   requestScreenshotPath?: string;
   matchScreenshotPath?: string;
+  requestScreenshotUrl?: string;
+  matchScreenshotUrl?: string;
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -18,11 +20,12 @@ export async function submitLog(data: {
   // Fetch user role
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, is_developer')
     .eq('id', user.id)
     .single();
 
-  if (profile?.role === 'Junior Mentor' && data.category === 'Mentoring Session') {
+  const isJunior = profile?.role === 'Junior Mentor' && !profile?.is_developer;
+  if (isJunior && data.category === 'Mentoring Session') {
     return { error: 'Junior Mentors are not authorized to submit Mentoring Sessions.' };
   }
 
@@ -36,6 +39,8 @@ export async function submitLog(data: {
       guide_link: data.guideLink || null,
       request_screenshot_path: data.requestScreenshotPath || null,
       match_screenshot_path: data.matchScreenshotPath || null,
+      request_screenshot_url: data.requestScreenshotUrl || null,
+      match_screenshot_url: data.matchScreenshotUrl || null,
       status: 'Pending',
     });
 
