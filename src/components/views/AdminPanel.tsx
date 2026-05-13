@@ -164,7 +164,7 @@ export function AdminPanel({
         ) : (
           pendingSubmissions.map((sub) => {
             const dateStr = new Date(sub.created_at).toLocaleDateString();
-            const mentorName = sub.profiles?.in_game_name || "Unknown";
+            const mentorName = `${sub.profiles?.discord_id || "Unknown"} (${sub.profiles?.in_game_name || "???"})`;
             const requestUrl = sub.request_screenshot_path ? `${supabaseUrl}/storage/v1/object/public/screenshots/${sub.request_screenshot_path}` : null;
             const matchUrl = sub.match_screenshot_path ? `${supabaseUrl}/storage/v1/object/public/screenshots/${sub.match_screenshot_path}` : null;
 
@@ -189,7 +189,7 @@ export function AdminPanel({
                   ) : (
                     <CardTitle className="text-lg mt-2">{sub.mentee_ign || "Evaluation Session"}</CardTitle>
                   )}
-                  <CardDescription>Submitted by: <span className="text-foreground font-medium">{mentorName}</span></CardDescription>
+                  <CardDescription className="text-sm font-semibold text-primary/80">Submitted by: <span className="text-foreground font-bold text-base">{mentorName}</span></CardDescription>
                   {sub.mentee_uid && <p className="text-xs text-muted-foreground mt-1 font-mono">UID: {sub.mentee_uid}</p>}
                 </CardHeader>
                 <CardContent className="flex-grow">
@@ -267,7 +267,7 @@ export function AdminPanel({
                   </div>
               )}
               <div>
-                <p className="font-bold text-lg">{mentor.in_game_name}</p>
+                <p className="font-bold text-xl">{mentor.discord_id} <span className="text-lg font-normal text-muted-foreground italic">({mentor.in_game_name})</span></p>
                 <p className="text-xs text-muted-foreground font-mono">{mentor.uid} • <span className="text-primary font-bold">{mentor.total_points} Points</span></p>
               </div>
               

@@ -79,7 +79,7 @@ export default async function Home() {
       .from("submissions")
       .select(`
         id, profile_id, category, mentee_ign, mentee_uid, guide_link, status, created_at, request_screenshot_path, match_screenshot_path,
-        profiles ( in_game_name )
+        profiles ( in_game_name, discord_id )
       `)
       .eq("status", "Pending")
       .order("created_at", { ascending: true });
@@ -92,7 +92,7 @@ export default async function Home() {
         id, mentee_ign, mentee_uid, category, created_at, 
         request_screenshot_url, match_screenshot_url,
         request_screenshot_path, match_screenshot_path,
-        profiles ( in_game_name )
+        profiles ( in_game_name, discord_id )
       `)
       .eq("status", "Approved")
       .not("mentee_ign", "is", null)

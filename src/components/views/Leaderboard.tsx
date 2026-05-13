@@ -80,7 +80,7 @@ export function Leaderboard({ members }: LeaderboardProps) {
               </div>
             </CardHeader>
             <CardContent>
-              <h3 className="text-xl font-bold truncate mb-1">{member.in_game_name}</h3>
+              <h3 className="text-2xl font-bold truncate mb-1">{member.discord_id} <span className="text-base font-normal text-muted-foreground">({member.in_game_name})</span></h3>
               <div className="flex items-center gap-2">
                 {getRoleBadge(member.role)}
                 <span className="text-[10px] font-mono text-muted-foreground uppercase">{member.timezone || "UTC+0"}</span>
@@ -121,7 +121,7 @@ export function Leaderboard({ members }: LeaderboardProps) {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="font-bold text-sm group-hover:text-primary transition-colors">{member.in_game_name}</span>
+                      <span className="font-bold text-base group-hover:text-primary transition-colors">{member.discord_id} <span className="text-sm font-normal text-muted-foreground">({member.in_game_name})</span></span>
                     </td>
                     <td className="px-6 py-4">
                       {getRoleBadge(member.role)}

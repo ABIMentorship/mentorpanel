@@ -231,8 +231,8 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="w-[180px] text-muted-foreground">In-game Name</TableHead>
-                <TableHead className="text-muted-foreground">Discord</TableHead>
+                <TableHead className="w-[180px] text-muted-foreground">Discord</TableHead>
+                <TableHead className="text-muted-foreground">In-game Name</TableHead>
                 <TableHead className="text-muted-foreground">TZ</TableHead>
                 <TableHead className="text-center text-muted-foreground text-xs uppercase tracking-wider">Participation</TableHead>
                 <TableHead className="text-center text-muted-foreground text-xs uppercase tracking-wider">Knowledge</TableHead>
@@ -253,8 +253,8 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
               )}
               {juniorMentors.map((mentor) => (
                 <TableRow key={mentor.id} className="border-border/50 hover:bg-muted/50 transition-colors">
-                  <TableCell className="font-medium text-foreground">{mentor.in_game_name}</TableCell>
-                  <TableCell className="text-muted-foreground">{mentor.discord_id}</TableCell>
+                  <TableCell className="font-medium text-foreground">{mentor.discord_id}</TableCell>
+                  <TableCell className="text-muted-foreground">{mentor.in_game_name}</TableCell>
                   <TableCell className="text-muted-foreground font-mono text-xs">{mentor.timezone}</TableCell>
                   <TableCell>{renderCell(mentor.id, "participation_points", mentor.mentor_metrics?.participation_points, 5, true, isAdmin)}</TableCell>
                   <TableCell>{renderCell(mentor.id, "knowledge_points", mentor.mentor_metrics?.knowledge_points, 5, true, isAdmin)}</TableCell>
@@ -289,8 +289,8 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="w-[180px] text-muted-foreground">In-game Name</TableHead>
-                <TableHead className="text-muted-foreground">Discord</TableHead>
+                <TableHead className="w-[180px] text-muted-foreground">Discord</TableHead>
+                <TableHead className="text-muted-foreground">In-game Name</TableHead>
                 <TableHead className="text-muted-foreground">TZ</TableHead>
                 <TableHead className="text-center text-muted-foreground text-xs uppercase tracking-wider">Participation</TableHead>
                 <TableHead className="text-center text-muted-foreground text-xs uppercase tracking-wider">Mentoring</TableHead>
@@ -308,8 +308,8 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
               )}
               {normalMentors.map((mentor) => (
                 <TableRow key={mentor.id} className="border-border/50 hover:bg-muted/50 transition-colors">
-                  <TableCell className="font-medium text-foreground">{mentor.in_game_name}</TableCell>
-                  <TableCell className="text-muted-foreground">{mentor.discord_id}</TableCell>
+                  <TableCell className="font-medium text-foreground">{mentor.discord_id}</TableCell>
+                  <TableCell className="text-muted-foreground">{mentor.in_game_name}</TableCell>
                   <TableCell className="text-muted-foreground font-mono text-xs">{mentor.timezone}</TableCell>
                   <TableCell>{renderCell(mentor.id, "participation_points", mentor.mentor_metrics?.participation_points, 5, true, isAdmin)}</TableCell>
                   <TableCell>{renderCell(mentor.id, "mentoring_points", mentor.mentor_metrics?.mentoring_points, 15, true, isAdmin)}</TableCell>
@@ -339,8 +339,8 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="w-[180px] text-muted-foreground">In-game Name</TableHead>
-                <TableHead className="text-muted-foreground">Discord</TableHead>
+                <TableHead className="w-[180px] text-muted-foreground">Discord</TableHead>
+                <TableHead className="text-muted-foreground">In-game Name</TableHead>
                 <TableHead className="text-muted-foreground">TZ</TableHead>
                 <TableHead className="text-center text-muted-foreground text-xs uppercase tracking-wider">Co-Host</TableHead>
                 <TableHead className="text-center text-muted-foreground text-xs uppercase tracking-wider">Mentoring</TableHead>
@@ -358,8 +358,8 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
               )}
               {seniorMentors.map((mentor) => (
                 <TableRow key={mentor.id} className="border-border/50 hover:bg-muted/50 transition-colors">
-                  <TableCell className="font-medium text-foreground">{mentor.in_game_name}</TableCell>
-                  <TableCell className="text-muted-foreground">{mentor.discord_id}</TableCell>
+                  <TableCell className="font-medium text-foreground">{mentor.discord_id}</TableCell>
+                  <TableCell className="text-muted-foreground">{mentor.in_game_name}</TableCell>
                   <TableCell className="text-muted-foreground font-mono text-xs">{mentor.timezone}</TableCell>
                   <TableCell>{renderCell(mentor.id, "co_host_points", mentor.mentor_metrics?.co_host_points, 10, true, isAdmin)}</TableCell>
                   <TableCell>{renderCell(mentor.id, "mentoring_points", mentor.mentor_metrics?.mentoring_points, 10, true, isAdmin)}</TableCell>

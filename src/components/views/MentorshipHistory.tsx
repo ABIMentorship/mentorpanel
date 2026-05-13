@@ -111,7 +111,7 @@ export function MentorshipHistory({ approvedMentorships }: MentorshipHistoryProp
         const row = worksheet.addRow({
           nick: sub.mentee_ign,
           uid: sub.mentee_uid,
-          mentor: sub.profiles?.in_game_name || "Unknown",
+          mentor: sub.profiles?.discord_id || sub.profiles?.in_game_name || "Unknown",
           category: sub.category,
           date: dateStr,
         });
@@ -225,7 +225,7 @@ export function MentorshipHistory({ approvedMentorships }: MentorshipHistoryProp
                       {sub.mentee_uid}
                     </TableCell>
                     <TableCell className="text-primary/90 font-medium tracking-tight">
-                      {sub.profiles?.in_game_name || "Unknown"}
+                      {sub.profiles?.discord_id || sub.profiles?.in_game_name || "Unknown"}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 uppercase border-primary/20 text-primary bg-primary/5 font-bold">
