@@ -75,6 +75,7 @@ export function MentorshipHistory({ approvedMentorships }: MentorshipHistoryProp
         { header: "Mentor", key: "mentor", width: 20 },
         { header: "Category", key: "category", width: 20 },
         { header: "Date", key: "date", width: 15 },
+        { header: "Guide Link", key: "guide_link", width: 30 },
         { header: "Request Screenshot", key: "request_url", width: 30 },
         { header: "Match Screenshot", key: "match_url", width: 30 }
       ];
@@ -109,11 +110,12 @@ export function MentorshipHistory({ approvedMentorships }: MentorshipHistoryProp
 
         // Add Row to Excel
         const row = worksheet.addRow({
-          nick: sub.mentee_ign,
-          uid: sub.mentee_uid,
+          nick: sub.mentee_ign || "—",
+          uid: sub.mentee_uid || "—",
           mentor: sub.profiles?.discord_id || sub.profiles?.in_game_name || "Unknown",
           category: sub.category,
           date: dateStr,
+          guide_link: sub.guide_link || "—",
         });
 
         // Hyperlinks for local files (relative path in ZIP)
@@ -219,10 +221,10 @@ export function MentorshipHistory({ approvedMentorships }: MentorshipHistoryProp
                 return (
                   <TableRow key={sub.id} className="border-border/50 hover:bg-muted/30 transition-colors group">
                     <TableCell className="font-bold text-foreground group-hover:text-primary transition-colors">
-                      {sub.mentee_ign}
+                      {sub.mentee_ign || "—"}
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground/80 tracking-tighter">
-                      {sub.mentee_uid}
+                      {sub.mentee_uid || "—"}
                     </TableCell>
                     <TableCell className="text-primary/90 font-medium tracking-tight">
                       {sub.profiles?.discord_id || sub.profiles?.in_game_name || "Unknown"}
@@ -241,7 +243,7 @@ export function MentorshipHistory({ approvedMentorships }: MentorshipHistoryProp
                           <DialogContent className="max-w-4xl bg-card/95 backdrop-blur border-primary/20">
                             <DialogHeader>
                               <DialogTitle className="uppercase tracking-tighter flex items-center justify-between">
-                                <span>Activity Proof • {sub.mentee_ign}</span>
+                                <span>Activity Proof • {sub.mentee_ign || sub.category}</span>
                                 <Badge variant="outline" className="text-[10px]">{sub.category}</Badge>
                               </DialogTitle>
                             </DialogHeader>
@@ -277,6 +279,10 @@ export function MentorshipHistory({ approvedMentorships }: MentorshipHistoryProp
                             </div>
                           </DialogContent>
                         </Dialog>
+                      ) : sub.guide_link ? (
+                        <a href={sub.guide_link} target="_blank" rel="noopener noreferrer" className="h-8 w-8 inline-flex items-center justify-center rounded-md text-primary hover:bg-primary/10 transition-colors" title="Open Guide Link">
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
                       ) : (
                         <Badge variant="outline" className="text-[10px] text-muted-foreground/30 border-muted-foreground/20 italic uppercase">Expired</Badge>
                       )}

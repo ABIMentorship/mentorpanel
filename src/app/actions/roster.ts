@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/admin';
 import { revalidatePath } from 'next/cache';
 
 export async function updateMentorPoints(
@@ -25,6 +26,14 @@ export async function updateMentorPoints(
     return { error: 'Unauthorized. Only Instructors and Leads can edit points.' };
   }
 
+  // Prevent regular instructors from modifying the exam
+  if (column === 'exam_passed') {
+    const isExamAdmin = currentUser?.is_developer || ['Lead Instructor', 'Lead', 'Advisor'].includes(currentUser?.role || '');
+    if (!isExamAdmin) {
+      return { error: 'Unauthorized. Only Lead Instructors and above can mark the exam.' };
+    }
+  }
+
   // Update metrics
   const { error } = await supabase
     .from('mentor_metrics')
@@ -37,10 +46,22 @@ export async function updateMentorPoints(
   }
 
   // Auto-promotion logic: Junior Mentor -> Mentor if exam passed
-  if (column === 'exam_passed' && value === true) {
+  if (column === 'exam_passed' && (value === true || value === 'true' || value === 1)) {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', profileId).single();
     if (profile && profile.role === 'Junior Mentor') {
-      await supabase.from('profiles').update({ role: 'Mentor' }).eq('id', profileId);
+      const adminClient = createAdminClient();
+      
+      const { data: updatedProfile, error: roleError } = await adminClient
+        .from('profiles')
+        .update({ role: 'Mentor' })
+        .eq('id', profileId)
+        .select()
+        .single();
+        
+      if (roleError || !updatedProfile) {
+        console.error('Failed to auto-promote Junior Mentor to Mentor:', roleError || 'RLS restricted or Service Key missing');
+        return { error: 'Exam updated, but auto-promotion failed! Please add SUPABASE_SERVICE_ROLE_KEY to .env.local or manually promote.' };
+      }
     }
   }
 

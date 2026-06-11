@@ -26,6 +26,7 @@ interface PublicRosterProps {
 export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
   const isAdmin = currentUser.is_developer || ["Instructor", "Senior Instructor", "Lead Instructor", "Lead", "Advisor"].includes(currentUser.role);
   const isSuperAdmin = currentUser.is_developer || ["Lead", "Advisor"].includes(currentUser.role);
+  const isExamAdmin = currentUser.is_developer || ["Lead Instructor", "Lead", "Advisor"].includes(currentUser.role);
 
   const [editingCell, setEditingCell] = useState<{ profileId: string, column: string, max: number | null } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
@@ -51,6 +52,7 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
   const handleCellClick = (profileId: string, column: string, currentValue: string | number | boolean, isApplicable: boolean, max: number | null) => {
     if (!isAdmin || !isApplicable) return;
     if (column === "abih_responses_points" && !isSuperAdmin) return;
+    if (column === "exam_passed" && !isExamAdmin) return;
 
     setEditingCell({ profileId, column, max });
     setEditValue(currentValue?.toString() || "");
@@ -260,7 +262,7 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
                   <TableCell>{renderCell(mentor.id, "knowledge_points", mentor.mentor_metrics?.knowledge_points, 5, true, isAdmin)}</TableCell>
                   <TableCell>{renderCell(mentor.id, "communication_points", mentor.mentor_metrics?.communication_points, 5, true, isAdmin)}</TableCell>
                   <TableCell>{renderCell(mentor.id, "behavior_points", mentor.mentor_metrics?.behavior_points, 5, true, isAdmin)}</TableCell>
-                  <TableCell>{renderCell(mentor.id, "exam_passed", mentor.mentor_metrics?.exam_passed, null, true, isAdmin)}</TableCell>
+                  <TableCell>{renderCell(mentor.id, "exam_passed", mentor.mentor_metrics?.exam_passed, null, true, isExamAdmin)}</TableCell>
                   <TableCell>{renderCell(mentor.id, "strikes", mentor.mentor_metrics?.strikes, 2, true, isAdmin)}</TableCell>
                   <TableCell className="text-right">
                     <Badge className="rounded-sm bg-yellow-500/10 text-yellow-500 border border-yellow-500/20" variant="outline">
