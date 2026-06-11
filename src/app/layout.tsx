@@ -18,7 +18,11 @@ export const metadata: Metadata = {
   description: "Official Mentor Academy Evaluation Portal",
   icons: {
     icon: "/Mentor_Academy.png",
-  }
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({
