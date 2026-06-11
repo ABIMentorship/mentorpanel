@@ -17,14 +17,13 @@ export async function approveSubmission(submissionId: string, profileId: string,
     return { error: "Unauthorized. Lead role required." };
   }
 
-  const adminClient = createAdminClient();
-  const { data: profileData } = await adminClient.from('profiles').select('total_points, session_count').eq('id', profileId).single();
+  const { data: profileData } = await supabase.from('profiles').select('total_points, session_count').eq('id', profileId).single();
   
   let effectiveTotalPoints = profileData?.total_points || 0;
   let effectiveSessionCount = profileData?.session_count || 0;
 
   // 1. Mark as Approved
-  const { data: submission, error: updateError } = await adminClient
+  const { data: submission, error: updateError } = await supabase
     .from('submissions')
     .update({ status: 'Approved' })
     .eq('id', submissionId)
@@ -47,13 +46,13 @@ export async function approveSubmission(submissionId: string, profileId: string,
     }
 
     // Update the metrics table for the roster view (syncing mentoring_points with session_count)
-    await adminClient.from('mentor_metrics').upsert({ 
+    await supabase.from('mentor_metrics').upsert({ 
       profile_id: profileId, 
       mentoring_points: Math.min(newSessionCount, 16)
     }, { onConflict: 'profile_id' });
     
     // Update the profile with the new total and session count
-    await adminClient.from('profiles').update({ 
+    await supabase.from('profiles').update({ 
       total_points: effectiveTotalPoints + pointsToAward,
       session_count: newSessionCount
     }).eq('id', profileId);
@@ -61,13 +60,13 @@ export async function approveSubmission(submissionId: string, profileId: string,
   } else if (category === "Guide Creation" && manualPoints !== undefined) {
     pointsToAward = manualPoints;
     
-    await adminClient.from('profiles').update({ 
+    await supabase.from('profiles').update({ 
       total_points: effectiveTotalPoints + pointsToAward
     }).eq('id', profileId);
   }
 
   if (pointsToAward > 0) {
-    await adminClient.from('submissions').update({ awarded_points: pointsToAward }).eq('id', submissionId);
+    await supabase.from('submissions').update({ awarded_points: pointsToAward }).eq('id', submissionId);
   }
 
   // Cleanup Storage moved to resetMonthlyData for history support
@@ -89,10 +88,8 @@ export async function resetMonthlyData() {
     return { error: "Unauthorized. Lead role required." };
   }
 
-  const adminClient = createAdminClient();
-
   // 1. Reset all profiles (Points and Session Count)
-  const { error: profileError } = await adminClient
+  const { error: profileError } = await supabase
     .from('profiles')
     .update({ 
       total_points: 0, 
@@ -103,24 +100,24 @@ export async function resetMonthlyData() {
   if (profileError) return { error: "Failed to reset profiles: " + profileError.message };
 
   // 2. Cleanup Storage (Delete all screenshots to free up space)
-  const { data: files } = await adminClient.storage.from('screenshots').list('', { limit: 1000 });
+  const { data: files } = await supabase.storage.from('screenshots').list('', { limit: 1000 });
   if (files && files.length > 0) {
     // List folders (user IDs)
     for (const item of files) {
       if (!item.id) { // It's a folder
-        const { data: subFiles } = await adminClient.storage.from('screenshots').list(item.name);
+        const { data: subFiles } = await supabase.storage.from('screenshots').list(item.name);
         if (subFiles && subFiles.length > 0) {
           const filesToRemove = subFiles.map(sf => `${item.name}/${sf.name}`);
-          await adminClient.storage.from('screenshots').remove(filesToRemove);
+          await supabase.storage.from('screenshots').remove(filesToRemove);
         }
       } else { // It's a file in root
-        await adminClient.storage.from('screenshots').remove([item.name]);
+        await supabase.storage.from('screenshots').remove([item.name]);
       }
     }
   }
 
   // 3. Update submissions to mark images as deleted (Clear BOTH urls and paths)
-  await adminClient
+  await supabase
     .from('submissions')
     .update({ 
       request_screenshot_url: null, 
@@ -147,10 +144,8 @@ export async function rejectSubmission(submissionId: string) {
     return { error: "Unauthorized. Lead role required." };
   }
 
-  const adminClient = createAdminClient();
-
   // Mark as Rejected
-  const { data: submission, error: updateError } = await adminClient
+  const { data: submission, error: updateError } = await supabase
     .from('submissions')
     .update({ status: 'Rejected' })
     .eq('id', submissionId)

@@ -1,5 +1,4 @@
 import { createClient } from "@/utils/supabase/server";
-import { createAdminClient } from "@/utils/supabase/admin";
 import { ClientDashboard } from "@/components/views/ClientDashboard";
 import { redirect } from "next/navigation";
 
@@ -76,9 +75,7 @@ export default async function Home() {
   const isSuperAdmin = mappedCurrentProfile.is_developer || ["Lead", "Advisor"].includes(mappedCurrentProfile.role);
   
   if (isSuperAdmin) {
-    const adminClient = createAdminClient();
-    
-    const { data: pending } = await adminClient
+    const { data: pending } = await supabase
       .from("submissions")
       .select(`
         id, profile_id, category, mentee_ign, mentee_uid, guide_link, status, created_at, request_screenshot_path, match_screenshot_path,
@@ -89,7 +86,7 @@ export default async function Home() {
     
     pendingSubmissions = pending || [];
 
-    const { data: approved } = await adminClient
+    const { data: approved } = await supabase
       .from("submissions")
       .select(`
         id, mentee_ign, mentee_uid, category, created_at, 
