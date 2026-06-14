@@ -314,7 +314,7 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
                   <TableCell className="text-muted-foreground">{mentor.in_game_name}</TableCell>
                   <TableCell className="text-muted-foreground font-mono text-xs">{mentor.timezone}</TableCell>
                   <TableCell>{renderCell(mentor.id, "participation_points", mentor.mentor_metrics?.participation_points, 5, true, isAdmin)}</TableCell>
-                  <TableCell>{renderCell(mentor.id, "mentoring_points", mentor.mentor_metrics?.mentoring_points, 15, true, isAdmin)}</TableCell>
+                  <TableCell>{renderCell(mentor.id, "mentoring_points", mentor.mentor_metrics?.mentoring_points, 25, true, isAdmin)}</TableCell>
                   <TableCell className="text-right font-mono text-primary font-bold text-lg">{mentor.total_points.toLocaleString()}</TableCell>
                   <TableCell className="text-right">
                     <Badge className={`rounded-sm ${getStatusBadgeVariant(mentor.role)}`} variant="outline">{mentor.role}</Badge>

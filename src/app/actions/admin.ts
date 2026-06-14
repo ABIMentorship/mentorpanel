@@ -38,8 +38,8 @@ export async function approveSubmission(submissionId: string, profileId: string,
   if (category === "Mentoring Session" || category === "Evaluation") {
     const newSessionCount = effectiveSessionCount + 1;
     
-    // Only award points if we are within the monthly cap (16)
-    if (newSessionCount <= 16) {
+    // Only award points if we are within the monthly cap (25)
+    if (newSessionCount <= 25) {
       pointsToAward = 125;
     } else {
       pointsToAward = 0; // Cap reached
@@ -48,7 +48,7 @@ export async function approveSubmission(submissionId: string, profileId: string,
     // Update the metrics table for the roster view (syncing mentoring_points with session_count)
     await supabase.from('mentor_metrics').upsert({ 
       profile_id: profileId, 
-      mentoring_points: Math.min(newSessionCount, 16)
+      mentoring_points: Math.min(newSessionCount, 25)
     }, { onConflict: 'profile_id' });
     
     // Update the profile with the new total and session count

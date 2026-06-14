@@ -37,16 +37,15 @@ export function MentorPanel({ currentUser }: MentorPanelProps) {
   // Dynamic Progress Logic
   const currentPoints = currentUser.total_points || 0;
   const tiers = [
-    { points: 500, bonds: 500 },
-    { points: 1000, bonds: 1000 },
-    { points: 1500, bonds: 2400 },
-    { points: 2000, bonds: 3600 },
-    { points: 3000, bonds: 6000 },
-    { points: 4000, bonds: 12000 },
+    { points: 1250, bonds: 500 },
+    { points: 1750, bonds: 750 },
+    { points: 2250, bonds: 1200 },
+    { points: 2750, bonds: 1800 },
+    { points: 3500, bonds: 2500 },
   ];
 
   const nextTier = tiers.find(t => currentPoints < t.points) || tiers[tiers.length - 1];
-  const isMaxed = currentPoints >= 4000;
+  const isMaxed = currentPoints >= 3500;
   const pointsNeeded = isMaxed ? 0 : nextTier.points - currentPoints;
   const progressPercentage = isMaxed ? 100 : (currentPoints / nextTier.points) * 100;
 
