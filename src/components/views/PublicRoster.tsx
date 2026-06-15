@@ -36,6 +36,23 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
   const normalMentors = mentors.filter(m => m.role === "Mentor");
   const juniorMentors = mentors.filter(m => m.role === "Junior Mentor");
 
+  const roleHierarchy: { [key: string]: number } = {
+    "Advisor": 1,
+    "Lead": 2,
+    "Lead Instructor": 3,
+    "Senior Instructor": 4,
+    "Instructor": 5
+  };
+
+  const instructors = mentors
+    .filter(m => ["Instructor", "Senior Instructor", "Lead Instructor", "Lead", "Advisor"].includes(m.role))
+    .sort((a, b) => {
+      const orderA = roleHierarchy[a.role] || 99;
+      const orderB = roleHierarchy[b.role] || 99;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.discord_id.localeCompare(b.discord_id);
+    });
+
   const getStatusBadgeVariant = (role: string) => {
     switch (role) {
       case "Senior Mentor":
@@ -44,6 +61,16 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
         return "bg-green-500/10 text-green-500 border border-green-500/20";
       case "Junior Mentor":
         return "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20";
+      case "Instructor":
+        return "bg-cyan-500/10 text-cyan-500 border border-cyan-500/20";
+      case "Senior Instructor":
+        return "bg-teal-500/10 text-teal-500 border border-teal-500/20";
+      case "Lead Instructor":
+        return "bg-indigo-500/10 text-indigo-500 border border-indigo-500/20";
+      case "Lead":
+        return "bg-purple-500/10 text-purple-500 border border-purple-500/20";
+      case "Advisor":
+        return "bg-red-500/10 text-red-500 border border-red-500/20";
       default:
         return "bg-muted text-muted-foreground";
     }
@@ -368,6 +395,50 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
                   <TableCell className="text-right font-mono text-primary font-bold text-lg">{mentor.total_points.toLocaleString()}</TableCell>
                   <TableCell className="text-right">
                     <Badge className={`rounded-sm ${getStatusBadgeVariant(mentor.role)}`} variant="outline">{mentor.role}</Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* INSTRUCTORS & LEADERSHIP TABLE */}
+      <Card className="border-border bg-card/50 backdrop-blur">
+        <CardHeader>
+          <CardTitle className="uppercase text-lg text-cyan-500 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+            Instructors & Leadership
+          </CardTitle>
+          <CardDescription>
+            Core administration team overseeing the academy and evaluations.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border hover:bg-transparent">
+                <TableHead className="w-[180px] text-muted-foreground">Discord</TableHead>
+                <TableHead className="text-muted-foreground">In-game Name</TableHead>
+                <TableHead className="text-muted-foreground">TZ</TableHead>
+                <TableHead className="text-right text-muted-foreground text-xs uppercase tracking-wider">Role</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {instructors.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    No Instructors or Leaders found.
+                  </TableCell>
+                </TableRow>
+              )}
+              {instructors.map((instructor) => (
+                <TableRow key={instructor.id} className="border-border/50 hover:bg-muted/50 transition-colors">
+                  <TableCell className="font-medium text-foreground">{instructor.discord_id}</TableCell>
+                  <TableCell className="text-muted-foreground">{instructor.in_game_name}</TableCell>
+                  <TableCell className="text-muted-foreground font-mono text-xs">{instructor.timezone || "N/A"}</TableCell>
+                  <TableCell className="text-right">
+                    <Badge className={`rounded-sm ${getStatusBadgeVariant(instructor.role)}`} variant="outline">{instructor.role}</Badge>
                   </TableCell>
                 </TableRow>
               ))}
