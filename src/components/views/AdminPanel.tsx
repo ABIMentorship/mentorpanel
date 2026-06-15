@@ -137,7 +137,7 @@ export function AdminPanel({
     }
   };
 
-  const isSuperAdmin = currentUser.is_developer || ["Lead", "Advisor"].includes(currentUser.role);
+  const isSuperAdmin = currentUser.is_developer || ["Lead", "Advisor", "Lead Instructor"].includes(currentUser.role);
   if (!isSuperAdmin) {
     return (
       <div className="flex justify-center items-center h-64 text-muted-foreground">

@@ -13,7 +13,7 @@ interface NavbarProps {
 
 export function Navbar({ activeView, setActiveView, currentUser }: NavbarProps) {
   const isAdmin = currentUser.is_developer || ["Instructor", "Senior Instructor", "Lead Instructor", "Lead", "Advisor"].includes(currentUser.role);
-  const isSuperAdmin = currentUser.is_developer || ["Lead", "Advisor"].includes(currentUser.role);
+  const isSuperAdmin = currentUser.is_developer || ["Lead", "Advisor", "Lead Instructor"].includes(currentUser.role);
   
   const navItems = [
     { id: "roster", label: "Public Roster" },

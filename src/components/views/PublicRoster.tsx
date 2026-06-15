@@ -25,7 +25,7 @@ interface PublicRosterProps {
 
 export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
   const isAdmin = currentUser.is_developer || ["Instructor", "Senior Instructor", "Lead Instructor", "Lead", "Advisor"].includes(currentUser.role);
-  const isSuperAdmin = currentUser.is_developer || ["Lead", "Advisor"].includes(currentUser.role);
+  const isSuperAdmin = currentUser.is_developer || ["Lead", "Advisor", "Lead Instructor"].includes(currentUser.role);
   const isExamAdmin = currentUser.is_developer || ["Lead Instructor", "Lead", "Advisor"].includes(currentUser.role);
 
   const [editingCell, setEditingCell] = useState<{ profileId: string, column: string, max: number | null } | null>(null);

@@ -4,6 +4,46 @@ import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { revalidatePath } from 'next/cache';
 
+const ROLE_HIERARCHY: Record<string, number> = {
+  'Advisor': 1,
+  'Lead': 2,
+  'Lead Instructor': 3,
+  'Senior Instructor': 4,
+  'Instructor': 5,
+  'Senior Mentor': 6,
+  'Mentor': 7,
+  'Junior Mentor': 8
+};
+
+async function logAdminAction(action: string, targetName: string | null, details: any) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('in_game_name, role')
+      .eq('id', user.id)
+      .single();
+
+    const adminName = profile?.in_game_name || user.email || 'Bilinmeyen Admin';
+    const adminRole = profile?.role || 'Bilinmeyen Rol';
+
+    const adminClient = createAdminClient();
+    await adminClient.from('admin_logs').insert({
+      admin_id: user.id,
+      admin_name: adminName,
+      admin_role: adminRole,
+      action: action,
+      target_name: targetName,
+      details: details
+    });
+  } catch (error) {
+    console.error("Admin eylemi günlüğe kaydedilemedi:", error);
+  }
+}
+
 export async function approveSubmission(submissionId: string, profileId: string, category: string, manualPoints?: number) {
   const supabase = await createClient();
   
@@ -12,12 +52,12 @@ export async function approveSubmission(submissionId: string, profileId: string,
   if (!user) return { error: "Not authenticated" };
 
   const { data: currentAdmin } = await supabase.from('profiles').select('role, is_developer').eq('id', user.id).single();
-  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor'].includes(currentAdmin?.role || '');
+  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor', 'Lead Instructor'].includes(currentAdmin?.role || '');
   if (!isSuperAdmin) {
     return { error: "Unauthorized. Lead role required." };
   }
 
-  const { data: profileData } = await supabase.from('profiles').select('total_points, session_count').eq('id', profileId).single();
+  const { data: profileData } = await supabase.from('profiles').select('in_game_name, total_points, session_count').eq('id', profileId).single();
   
   let effectiveTotalPoints = profileData?.total_points || 0;
   let effectiveSessionCount = profileData?.session_count || 0;
@@ -71,6 +111,15 @@ export async function approveSubmission(submissionId: string, profileId: string,
 
   // Cleanup Storage moved to resetMonthlyData for history support
 
+  // Log the admin action
+  await logAdminAction('Onaylama (Approve Submission)', profileData?.in_game_name || null, {
+    submissionId,
+    targetProfileId: profileId,
+    category,
+    manualPoints,
+    awardedPoints: pointsToAward
+  });
+
   revalidatePath('/');
   return { success: true, awardedPoints: pointsToAward };
 }
@@ -83,7 +132,7 @@ export async function resetMonthlyData() {
   if (!user) return { error: "Not authenticated" };
 
   const { data: currentAdmin } = await supabase.from('profiles').select('role, is_developer').eq('id', user.id).single();
-  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor'].includes(currentAdmin?.role || '');
+  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor', 'Lead Instructor'].includes(currentAdmin?.role || '');
   if (!isSuperAdmin) {
     return { error: "Unauthorized. Lead role required." };
   }
@@ -127,6 +176,9 @@ export async function resetMonthlyData() {
     })
     .not('id', 'is', null);
 
+  // Log the action
+  await logAdminAction('Aylık Sıfırlama (Reset Monthly Data)', 'Tüm Mentorlar (All Mentors)', {});
+
   revalidatePath('/');
   return { success: true };
 }
@@ -139,10 +191,18 @@ export async function rejectSubmission(submissionId: string) {
   if (!user) return { error: "Not authenticated" };
 
   const { data: currentAdmin } = await supabase.from('profiles').select('role, is_developer').eq('id', user.id).single();
-  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor'].includes(currentAdmin?.role || '');
+  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor', 'Lead Instructor'].includes(currentAdmin?.role || '');
   if (!isSuperAdmin) {
     return { error: "Unauthorized. Lead role required." };
   }
+
+  // Get submission submitter info for logging
+  const { data: submissionData } = await supabase
+    .from('submissions')
+    .select('profile_id, category, profiles(in_game_name)')
+    .eq('id', submissionId)
+    .single();
+  const targetName = (submissionData?.profiles as any)?.in_game_name || null;
 
   // Mark as Rejected
   const { data: submission, error: updateError } = await supabase
@@ -156,6 +216,13 @@ export async function rejectSubmission(submissionId: string) {
 
   // Cleanup Storage moved to resetMonthlyData for history support
 
+  // Log the action
+  await logAdminAction('Reddetme (Reject Submission)', targetName, {
+    submissionId,
+    category: submissionData?.category,
+    profileId: submissionData?.profile_id
+  });
+
   revalidatePath('/');
   return { success: true };
 }
@@ -168,15 +235,30 @@ export async function adjustPoints(profileId: string, adjustment: number) {
   if (!user) return { error: "Not authenticated" };
 
   const { data: currentAdmin } = await supabase.from('profiles').select('role, is_developer').eq('id', user.id).single();
-  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor'].includes(currentAdmin?.role || '');
+  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor', 'Lead Instructor'].includes(currentAdmin?.role || '');
   if (!isSuperAdmin) {
     return { error: "Unauthorized. Lead role required." };
   }
 
-  // Get current points
-  const { data: profile } = await supabase.from('profiles').select('total_points').eq('id', profileId).single();
-  const currentTotal = profile?.total_points || 0;
-  
+  // Fetch target profile info for hiyerarşik checks
+  const { data: profile } = await supabase.from('profiles').select('in_game_name, total_points, role, is_developer').eq('id', profileId).single();
+  if (!profile) return { error: "User not found" };
+
+  // Enforce hiyerarşik safety (foolproofing)
+  if (!currentAdmin?.is_developer) {
+    if (profile.is_developer) {
+      return { error: "Unauthorized. Cannot modify developer metrics." };
+    }
+    const actorRole = currentAdmin?.role || '';
+    const actorLevel = ROLE_HIERARCHY[actorRole] || 99;
+    const targetLevel = ROLE_HIERARCHY[profile.role || ''] || 99;
+
+    if (targetLevel <= actorLevel) {
+      return { error: "Unauthorized. Cannot modify metrics for an equal or higher role." };
+    }
+  }
+
+  const currentTotal = profile.total_points || 0;
   const newTotal = Math.max(0, currentTotal + adjustment);
   const { error } = await supabase.from('profiles').update({ total_points: newTotal }).eq('id', profileId);
 
@@ -184,6 +266,14 @@ export async function adjustPoints(profileId: string, adjustment: number) {
     console.error("Failed to adjust points:", error);
     return { error: "Failed to update points." };
   }
+
+  // Log the action
+  await logAdminAction('Puan Düzenleme (Adjust Points)', profile.in_game_name, {
+    targetProfileId: profileId,
+    adjustment: adjustment,
+    previousPoints: currentTotal,
+    newPoints: newTotal
+  });
 
   revalidatePath('/');
   return { success: true };
@@ -197,9 +287,31 @@ export async function changeRole(profileId: string, newRole: string) {
   if (!user) return { error: "Not authenticated" };
 
   const { data: currentAdmin } = await supabase.from('profiles').select('role, is_developer').eq('id', user.id).single();
-  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor'].includes(currentAdmin?.role || '');
+  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor', 'Lead Instructor'].includes(currentAdmin?.role || '');
   if (!isSuperAdmin) {
     return { error: "Unauthorized. Lead role required." };
+  }
+
+  // Fetch target profile info for hiyerarşik checks
+  const { data: targetProfile } = await supabase.from('profiles').select('in_game_name, role, is_developer').eq('id', profileId).single();
+  if (!targetProfile) return { error: "User not found" };
+
+  // Enforce hiyerarşik safety (foolproofing)
+  if (!currentAdmin?.is_developer) {
+    if (targetProfile.is_developer) {
+      return { error: "Unauthorized. Cannot modify developer roles." };
+    }
+    const actorRole = currentAdmin?.role || '';
+    const actorLevel = ROLE_HIERARCHY[actorRole] || 99;
+    const targetLevel = ROLE_HIERARCHY[targetProfile.role || ''] || 99;
+    const newRoleLevel = ROLE_HIERARCHY[newRole] || 99;
+
+    if (targetLevel <= actorLevel) {
+      return { error: "Unauthorized. Cannot modify a user with an equal or higher role." };
+    }
+    if (newRoleLevel <= actorLevel) {
+      return { error: "Unauthorized. You cannot assign a role equal to or higher than your own." };
+    }
   }
 
   const adminClient = createAdminClient();
@@ -215,6 +327,13 @@ export async function changeRole(profileId: string, newRole: string) {
     return { error: `Failed to update role. Please add SUPABASE_SERVICE_ROLE_KEY to .env.local to bypass RLS.` };
   }
 
+  // Log the action
+  await logAdminAction('Rol Değiştirme (Change Role)', targetProfile.in_game_name, {
+    targetProfileId: profileId,
+    previousRole: targetProfile.role,
+    newRole: newRole
+  });
+
   revalidatePath('/');
   return { success: true };
 }
@@ -227,9 +346,27 @@ export async function updateStrikes(profileId: string, strikes: string) {
   if (!user) return { error: "Not authenticated" };
 
   const { data: currentAdmin } = await supabase.from('profiles').select('role, is_developer').eq('id', user.id).single();
-  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor'].includes(currentAdmin?.role || '');
+  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor', 'Lead Instructor'].includes(currentAdmin?.role || '');
   if (!isSuperAdmin) {
     return { error: "Unauthorized. Lead role required." };
+  }
+
+  // Fetch target profile info for hiyerarşik checks
+  const { data: targetProfile } = await supabase.from('profiles').select('in_game_name, role, is_developer').eq('id', profileId).single();
+  if (!targetProfile) return { error: "User not found" };
+
+  // Enforce hiyerarşik safety (foolproofing)
+  if (!currentAdmin?.is_developer) {
+    if (targetProfile.is_developer) {
+      return { error: "Unauthorized. Cannot modify developer metrics." };
+    }
+    const actorRole = currentAdmin?.role || '';
+    const actorLevel = ROLE_HIERARCHY[actorRole] || 99;
+    const targetLevel = ROLE_HIERARCHY[targetProfile.role || ''] || 99;
+
+    if (targetLevel <= actorLevel) {
+      return { error: "Unauthorized. Cannot modify metrics for an equal or higher role." };
+    }
   }
 
   // Cap strikes at 2
@@ -246,6 +383,12 @@ export async function updateStrikes(profileId: string, strikes: string) {
     return { error: "Failed to update strikes." };
   }
 
+  // Log the action
+  await logAdminAction('Uyarı Güncelleme (Update Strikes)', targetProfile.in_game_name, {
+    targetProfileId: profileId,
+    strikes: finalStrikes
+  });
+
   revalidatePath('/');
   return { success: true };
 }
@@ -258,12 +401,36 @@ export async function deleteUser(profileId: string) {
   if (!user) return { error: "Not authenticated" };
 
   const { data: currentAdmin } = await supabase.from('profiles').select('role, is_developer').eq('id', user.id).single();
-  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor'].includes(currentAdmin?.role || '');
+  const isSuperAdmin = currentAdmin?.is_developer || ['Lead', 'Advisor', 'Lead Instructor'].includes(currentAdmin?.role || '');
   if (!isSuperAdmin) {
     return { error: "Unauthorized. Lead/Advisor access required." };
   }
 
+  // Fetch target profile info for hiyerarşik checks
+  const { data: targetProfile } = await supabase.from('profiles').select('in_game_name, discord_id, role, is_developer').eq('id', profileId).single();
+  if (!targetProfile) return { error: "User not found" };
+
+  // Enforce hiyerarşik safety (foolproofing)
+  if (!currentAdmin?.is_developer) {
+    if (targetProfile.is_developer) {
+      return { error: "Unauthorized. Cannot delete a developer." };
+    }
+    const actorRole = currentAdmin?.role || '';
+    const actorLevel = ROLE_HIERARCHY[actorRole] || 99;
+    const targetLevel = ROLE_HIERARCHY[targetProfile.role || ''] || 99;
+
+    if (targetLevel <= actorLevel) {
+      return { error: "Unauthorized. Cannot delete a user with an equal or higher role." };
+    }
+  }
+
   try {
+    // Log BEFORE deleting (so we have target details preserved in logs)
+    await logAdminAction('Kullanıcı Silme (Delete User)', `${targetProfile.in_game_name} (Discord: ${targetProfile.discord_id})`, {
+      targetProfileId: profileId,
+      role: targetProfile.role
+    });
+
     // 1. Delete metrics
     await supabase.from('mentor_metrics').delete().eq('profile_id', profileId);
     
