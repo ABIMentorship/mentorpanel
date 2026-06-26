@@ -72,6 +72,7 @@ export function MentorshipHistory({ approvedMentorships }: MentorshipHistoryProp
       worksheet.columns = [
         { header: "Nick", key: "nick", width: 20 },
         { header: "UID", key: "uid", width: 15 },
+        { header: "Discord ID", key: "discord_id", width: 20 },
         { header: "Mentor", key: "mentor", width: 20 },
         { header: "Category", key: "category", width: 20 },
         { header: "Date", key: "date", width: 15 },
@@ -112,6 +113,7 @@ export function MentorshipHistory({ approvedMentorships }: MentorshipHistoryProp
         const row = worksheet.addRow({
           nick: sub.mentee_ign || "—",
           uid: sub.mentee_uid || "—",
+          discord_id: sub.mentee_discord_id || "—",
           mentor: sub.profiles?.discord_id || sub.profiles?.in_game_name || "Unknown",
           category: sub.category,
           date: dateStr,
@@ -200,6 +202,7 @@ export function MentorshipHistory({ approvedMentorships }: MentorshipHistoryProp
             <TableRow className="border-border hover:bg-transparent">
               <TableHead className="text-muted-foreground uppercase text-xs font-bold">Mentee Nick</TableHead>
               <TableHead className="text-muted-foreground uppercase text-xs font-bold">Mentee UID</TableHead>
+              <TableHead className="text-muted-foreground uppercase text-xs font-bold">Mentee Discord</TableHead>
               <TableHead className="text-muted-foreground uppercase text-xs font-bold">Mentor</TableHead>
               <TableHead className="text-muted-foreground uppercase text-xs font-bold">Category</TableHead>
               <TableHead className="text-center text-muted-foreground uppercase text-xs font-bold">Proof</TableHead>
@@ -225,6 +228,9 @@ export function MentorshipHistory({ approvedMentorships }: MentorshipHistoryProp
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground/80 tracking-tighter">
                       {sub.mentee_uid || "—"}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground/80 tracking-tighter">
+                      {sub.mentee_discord_id || "—"}
                     </TableCell>
                     <TableCell className="text-primary/90 font-medium tracking-tight">
                       {sub.profiles?.discord_id || sub.profiles?.in_game_name || "Unknown"}

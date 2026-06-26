@@ -12,6 +12,7 @@ export async function submitLog(data: {
   matchScreenshotPath?: string;
   requestScreenshotUrl?: string;
   matchScreenshotUrl?: string;
+  menteeDiscordId?: string;
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -36,6 +37,7 @@ export async function submitLog(data: {
       category: data.category,
       mentee_ign: data.menteeIgn || null,
       mentee_uid: data.menteeUid || null,
+      mentee_discord_id: data.menteeDiscordId || null,
       guide_link: data.guideLink || null,
       request_screenshot_path: data.requestScreenshotPath || null,
       match_screenshot_path: data.matchScreenshotPath || null,

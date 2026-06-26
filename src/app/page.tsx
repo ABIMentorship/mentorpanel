@@ -78,7 +78,7 @@ export default async function Home() {
     const { data: pending } = await supabase
       .from("submissions")
       .select(`
-        id, profile_id, category, mentee_ign, mentee_uid, guide_link, status, created_at, request_screenshot_path, match_screenshot_path,
+        id, profile_id, category, mentee_ign, mentee_uid, mentee_discord_id, guide_link, status, created_at, request_screenshot_path, match_screenshot_path,
         profiles ( in_game_name, discord_id )
       `)
       .eq("status", "Pending")
@@ -89,7 +89,7 @@ export default async function Home() {
     const { data: approved } = await supabase
       .from("submissions")
       .select(`
-        id, mentee_ign, mentee_uid, category, created_at, 
+        id, mentee_ign, mentee_uid, mentee_discord_id, category, created_at, 
         guide_link,
         request_screenshot_url, match_screenshot_url,
         request_screenshot_path, match_screenshot_path,

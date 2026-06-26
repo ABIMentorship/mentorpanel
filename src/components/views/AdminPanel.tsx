@@ -190,7 +190,10 @@ export function AdminPanel({
                     <CardTitle className="text-lg mt-2">{sub.mentee_ign || "Evaluation Session"}</CardTitle>
                   )}
                   <CardDescription className="text-sm font-semibold text-primary/80">Submitted by: <span className="text-foreground font-bold text-base">{mentorName}</span></CardDescription>
-                  {sub.mentee_uid && <p className="text-xs text-muted-foreground mt-1 font-mono">UID: {sub.mentee_uid}</p>}
+                  <div className="flex gap-4 mt-1">
+                    {sub.mentee_uid && <p className="text-xs text-muted-foreground font-mono">UID: {sub.mentee_uid}</p>}
+                    {sub.mentee_discord_id && <p className="text-xs text-muted-foreground font-mono">Discord: {sub.mentee_discord_id}</p>}
+                  </div>
                 </CardHeader>
                 <CardContent className="flex-grow">
                   {sub.category !== "Guide Creation" && (

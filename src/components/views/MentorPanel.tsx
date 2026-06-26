@@ -26,6 +26,7 @@ export function MentorPanel({ currentUser }: MentorPanelProps) {
   const [category, setCategory] = useState<string>("");
   const [menteeIgn, setMenteeIgn] = useState<string>("");
   const [menteeUid, setMenteeUid] = useState<string>("");
+  const [menteeDiscordId, setMenteeDiscordId] = useState<string>("");
   const [guideLink, setGuideLink] = useState<string>("");
   const [requestFile, setRequestFile] = useState<File | null>(null);
   const [matchFile, setMatchFile] = useState<File | null>(null);
@@ -78,7 +79,7 @@ export function MentorPanel({ currentUser }: MentorPanelProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (category === "Mentoring Session" && (!menteeIgn || !menteeUid)) {
+    if (category === "Mentoring Session" && (!menteeIgn || !menteeUid || !menteeDiscordId)) {
       toast.error("Please fill all required fields.", {
         className: "bg-destructive text-destructive-foreground border-destructive",
       });
@@ -137,6 +138,7 @@ export function MentorPanel({ currentUser }: MentorPanelProps) {
         category,
         menteeIgn,
         menteeUid,
+        menteeDiscordId,
         guideLink,
         requestScreenshotPath,
         matchScreenshotPath,
@@ -152,6 +154,7 @@ export function MentorPanel({ currentUser }: MentorPanelProps) {
         });
         setMenteeIgn("");
         setMenteeUid("");
+        setMenteeDiscordId("");
         setCategory("");
         setGuideLink("");
         setRequestFile(null);
@@ -217,7 +220,7 @@ export function MentorPanel({ currentUser }: MentorPanelProps) {
             </div>
 
             {category === "Mentoring Session" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="space-y-2">
                   <Label htmlFor="menteeIgn">Mentee In-game Name</Label>
                   <Input 
@@ -235,6 +238,16 @@ export function MentorPanel({ currentUser }: MentorPanelProps) {
                     placeholder="e.g. 100456789" 
                     value={menteeUid}
                     onChange={(e) => setMenteeUid(e.target.value)}
+                    className="bg-background/50 border-border focus-visible:ring-primary"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="menteeDiscordId">Mentee Discord ID</Label>
+                  <Input 
+                    id="menteeDiscordId" 
+                    placeholder="e.g. 123456789012345678" 
+                    value={menteeDiscordId}
+                    onChange={(e) => setMenteeDiscordId(e.target.value)}
                     className="bg-background/50 border-border focus-visible:ring-primary"
                   />
                 </div>
