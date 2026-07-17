@@ -108,8 +108,8 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
       finalValue = String(finalValue).toLowerCase() === "true" || finalValue === "1" || String(finalValue).toLowerCase() === "yes" || String(finalValue).toLowerCase() === "passed";
     }
 
-    if (column === "notes" && String(finalValue).length > 200) {
-      toast.error("Notes cannot exceed 200 characters");
+    if (column === "notes" && String(finalValue).length > 500) {
+      toast.error("Notes cannot exceed 500 characters");
       setIsLoading(false);
       return;
     }
@@ -240,7 +240,7 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
             <div className="grid gap-4 py-4">
               <textarea 
                  defaultValue={noteStr}
-                 maxLength={200}
+                 maxLength={500}
                  id={`notes-${profileId}`}
                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                  placeholder="Type your notes here..."

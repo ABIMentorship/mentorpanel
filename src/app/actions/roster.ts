@@ -35,8 +35,8 @@ export async function updateMentorPoints(
   }
 
   // Prevent overly long notes to avoid database abuse
-  if (column === 'notes' && typeof value === 'string' && value.length > 200) {
-    return { error: 'Notes cannot exceed 200 characters.' };
+  if (column === 'notes' && typeof value === 'string' && value.length > 500) {
+    return { error: 'Notes cannot exceed 500 characters.' };
   }
 
   // Update metrics
