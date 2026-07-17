@@ -28,7 +28,8 @@ export default async function Home() {
         behavior_points,
         exam_passed,
         strikes,
-        quota
+        quota,
+        notes
       )
     `)
     .eq("id", user.id)
@@ -53,21 +54,36 @@ export default async function Home() {
         behavior_points,
         exam_passed,
         strikes,
-        quota
+        quota,
+        notes
       )
     `)
     .order("total_points", { ascending: false });
-
-  // Map the nested mentor_metrics properly, just in case it returns an array due to Supabase typing quirks
-  const mappedRosterData = (rosterData || []).map((profile) => ({
-    ...profile,
-    mentor_metrics: Array.isArray(profile.mentor_metrics) ? profile.mentor_metrics[0] : profile.mentor_metrics
-  }));
 
   const mappedCurrentProfile = {
     ...currentProfile,
     mentor_metrics: Array.isArray(currentProfile.mentor_metrics) ? currentProfile.mentor_metrics[0] : currentProfile.mentor_metrics
   };
+
+  const isAdmin = mappedCurrentProfile.is_developer || ["Instructor", "Senior Instructor", "Lead Instructor", "Lead", "Advisor"].includes(mappedCurrentProfile.role);
+
+  // Map the nested mentor_metrics properly, just in case it returns an array due to Supabase typing quirks
+  const mappedRosterData = (rosterData || []).map((profile) => {
+    let metrics: any = Array.isArray(profile.mentor_metrics) ? profile.mentor_metrics[0] : profile.mentor_metrics;
+    
+    if (metrics) {
+      metrics = { ...metrics };
+      // Completely hide notes from network payload if not admin
+      if (!isAdmin && 'notes' in metrics) {
+        delete metrics.notes;
+      }
+    }
+
+    return {
+      ...profile,
+      mentor_metrics: metrics
+    };
+  });
 
   let pendingSubmissions: any[] = [];
   let approvedMentorships: any[] = [];

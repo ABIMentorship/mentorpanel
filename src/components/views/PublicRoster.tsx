@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, XCircle, Minus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface PublicRosterProps {
   mentors: ProfileWithMetrics[];
@@ -106,6 +108,12 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
       finalValue = String(finalValue).toLowerCase() === "true" || finalValue === "1" || String(finalValue).toLowerCase() === "yes" || String(finalValue).toLowerCase() === "passed";
     }
 
+    if (column === "notes" && String(finalValue).length > 200) {
+      toast.error("Notes cannot exceed 200 characters");
+      setIsLoading(false);
+      return;
+    }
+
     const res = await updateMentorPoints(profileId, column as any, finalValue);
     
     if (res.error) {
@@ -164,6 +172,12 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
         );
       }
 
+      const isNotes = column === "notes";
+
+      if (isNotes) {
+        return null; // Notes are handled by their own Dialog outside of the standard inline edit
+      }
+
       return (
         <div className="flex items-center justify-center">
           <Input 
@@ -173,7 +187,7 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
             onChange={(e) => setEditValue(e.target.value)}
             onBlur={() => handleSave(profileId, column)}
             onKeyDown={(e) => handleKeyDown(e, profileId, column)}
-            className="w-16 h-8 text-center px-1"
+            className={`h-8 px-1 ${isNotes ? 'w-48 text-left text-xs' : 'w-16 text-center'}`}
             disabled={isLoading}
           />
         </div>
@@ -193,6 +207,51 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
             <XCircle className="w-5 h-5 text-destructive" />
           )}
         </div>
+      );
+    }
+
+    // Special rendering for Notes
+    if (column === "notes") {
+      const noteStr = String(value || "");
+      const hasNote = noteStr.trim() !== "";
+      
+      if (!canEdit) {
+        return (
+          <div className="text-left text-xs max-w-[200px] truncate" title={hasNote ? noteStr : ""}>
+            {hasNote ? <span className="text-muted-foreground">{noteStr}</span> : <span className="text-muted-foreground/30 italic">No notes</span>}
+          </div>
+        );
+      }
+
+      return (
+        <Dialog>
+          <DialogTrigger>
+            <div 
+              className="text-left text-xs max-w-[200px] truncate cursor-pointer hover:bg-muted/50 rounded p-1 transition-colors"
+              title="Click to view/edit notes"
+            >
+              {hasNote ? <span className="text-muted-foreground">{noteStr}</span> : <span className="text-muted-foreground/30 italic">No notes</span>}
+            </div>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Junior Mentor Notes</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <textarea 
+                 defaultValue={noteStr}
+                 maxLength={200}
+                 id={`notes-${profileId}`}
+                 className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                 placeholder="Type your notes here..."
+              />
+            </div>
+            <Button onClick={() => {
+               const val = (document.getElementById(`notes-${profileId}`) as HTMLInputElement).value;
+               handleSave(profileId, column, val);
+            }} disabled={isLoading}>Save Notes</Button>
+          </DialogContent>
+        </Dialog>
       );
     }
 
@@ -269,13 +328,14 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
                 <TableHead className="text-center text-muted-foreground text-xs uppercase tracking-wider">Behavior</TableHead>
                 <TableHead className="text-center text-muted-foreground text-xs uppercase tracking-wider">Exam</TableHead>
                 <TableHead className="text-center text-muted-foreground text-xs uppercase tracking-wider">Strikes</TableHead>
+                {isAdmin && <TableHead className="text-left text-muted-foreground text-xs uppercase tracking-wider">Notes</TableHead>}
                 <TableHead className="text-right text-muted-foreground text-xs uppercase tracking-wider">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {juniorMentors.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={isAdmin ? 11 : 10} className="text-center text-muted-foreground py-8">
                     No Junior Mentors in training.
                   </TableCell>
                 </TableRow>
@@ -291,6 +351,7 @@ export function PublicRoster({ mentors, currentUser }: PublicRosterProps) {
                   <TableCell>{renderCell(mentor.id, "behavior_points", mentor.mentor_metrics?.behavior_points, 5, true, isAdmin)}</TableCell>
                   <TableCell>{renderCell(mentor.id, "exam_passed", mentor.mentor_metrics?.exam_passed, null, true, isExamAdmin)}</TableCell>
                   <TableCell>{renderCell(mentor.id, "strikes", mentor.mentor_metrics?.strikes, 2, true, isAdmin)}</TableCell>
+                  {isAdmin && <TableCell>{renderCell(mentor.id, "notes", mentor.mentor_metrics?.notes || "", null, true, isAdmin)}</TableCell>}
                   <TableCell className="text-right">
                     <Badge className="rounded-sm bg-yellow-500/10 text-yellow-500 border border-yellow-500/20" variant="outline">
                       In Training

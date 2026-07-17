@@ -28,6 +28,7 @@ export type ProfileWithMetrics = {
     exam_passed: boolean;
     strikes: string;
     quota: number;
+    notes?: string;
   };
 };
 

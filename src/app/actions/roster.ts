@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 
 export async function updateMentorPoints(
   profileId: string, 
-  column: 'participation_points' | 'mentoring_points' | 'co_host_points' | 'abih_responses_points' | 'knowledge_points' | 'communication_points' | 'behavior_points' | 'exam_passed' | 'strikes' | 'quota', 
+  column: 'participation_points' | 'mentoring_points' | 'co_host_points' | 'abih_responses_points' | 'knowledge_points' | 'communication_points' | 'behavior_points' | 'exam_passed' | 'strikes' | 'quota' | 'notes', 
   value: number | boolean | string
 ) {
   const supabase = await createClient();
@@ -32,6 +32,11 @@ export async function updateMentorPoints(
     if (!isExamAdmin) {
       return { error: 'Unauthorized. Only Lead Instructors and above can mark the exam.' };
     }
+  }
+
+  // Prevent overly long notes to avoid database abuse
+  if (column === 'notes' && typeof value === 'string' && value.length > 200) {
+    return { error: 'Notes cannot exceed 200 characters.' };
   }
 
   // Update metrics
